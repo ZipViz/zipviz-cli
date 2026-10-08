@@ -1,0 +1,32 @@
+{
+  "ansId": "550e8400-e29b-41d4-a716-446655440000",
+  "ansName": "ans://v1.5.0.support.example.com",
+  "eventType": "AGENT_REGISTERED",
+  "agent": {
+    "host": "support.example.com",
+    "name": "Acme Support Agent",
+    "version": "v1.5.0",
+    "providerId": "PID-8294",
+    "lei": "549300EXAMPLE00LEI17"
+  },
+  "attestations": {
+    "identityCert": {
+      "fingerprint": "SHA256:22b8a804...",
+      "type": "X509-OV-CLIENT"
+    },
+    "serverCert": {
+      "fingerprint": "SHA256:d2b71bc0...",
+      "type": "X509-DV-SERVER"
+    },
+    "dnsRecordsProvisioned": {
+      "_ans": "v=ans1; version=v1.5.0; ...",
+      "_ans-badge": "v=ans-badge1; version=v1.5.0; ..."
+    },
+    "domainValidation": "ACME-DNS-01",
+    "dnssecStatus": "fully_validated"
+  },
+  "expiresAt": "2026-10-05T18:00:00.000000Z",
+  "issuedAt": "2026-03-05T18:00:00.000000Z",
+  "raId": "id-A",
+  "timestamp": "2026-03-05T18:00:00.000000Z"
+}

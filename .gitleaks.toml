@@ -1,0 +1,24 @@
+title = "zipviz-cli secret scanning"
+
+[extend]
+useDefault = true
+
+# Owner-approved exact-file exception (2026-10-05).
+# Public NIP-OA "Test Vectors" fenced block, byte-for-byte verified at:
+# https://github.com/block/buzz/blob/fe9e2409a02fbac415d5c66181135be3eec28a86/docs/nips/NIP-OA.md
+# Fixture SHA-256: e16a747f68ec59ab863548b4c6589be3207f9d65168dddf99c36268ba5fdb552
+# The separately cited 004a8aa does not resolve in block/buzz; use the verified
+# full upstream commit recorded in the fixture README. No rule/value exception.
+[[allowlists]]
+description = "Owner-approved public NIP-OA test-vector file only"
+paths = ['^tests/fixtures/nip-oa/test-vectors\.txt$']
+
+# Owner-approved exact-file exception (2026-10-05).
+# Public unauthenticated GoDaddy badge, captured 2026-10-05T06:52:59.748338Z:
+# https://transparency.ans.godaddy.com/v1/agents/f398a568-77b1-43c3-8289-f0c93b521b75
+# Fixture SHA-256: dabf51a412d6db467ea05469336518c3109282dddc3927a3aacad5c28038ea3d
+# The flagged JWT is a public signed checkpoint, not a bearer credential.
+# Exact file only; no JWT-rule, value, directory, or inline-comment exception.
+[[allowlists]]
+description = "Owner-approved public GoDaddy ANS badge fixture only"
+paths = ['^tests/fixtures/ans/godaddy-live-v1/badge\.json$']

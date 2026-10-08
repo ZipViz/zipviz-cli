@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "V1",
+  "status": "ACTIVE",
+  "payload": {
+    "logId": "550e8400-e29b-41d4-a716-446655440000",
+    "producer": {
+      "event": { "...same structure as A.3..." },
+      "keyId": "id-B",
+      "signature": "eyJhbGciOiJFUzI1NiJ9..."
+    }
+  },
+  "signature": "eyJhbGciOiJFUzI1NiIsImtpZCI6...",
+  "inclusionProof": {
+    "leafHash": "abc123def456...",
+    "leafIndex": 1234567,
+    "treeSize": 9876543,
+    "treeVersion": 1,
+    "path": ["def456789abc...", "012345abcdef...", "..."],
+    "rootHash": "current1234abcdef...",
+    "rootSignature": "eyJhbGciOiJFUzI1NiJ9..."
+  }
+}

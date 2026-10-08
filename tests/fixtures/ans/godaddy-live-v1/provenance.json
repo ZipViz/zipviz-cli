@@ -1,0 +1,47 @@
+{
+  "name": "ans://v1.0.0.claudais.goos.ag",
+  "artifacts": [
+    {
+      "file": "badge.json",
+      "url": "https://transparency.ans.godaddy.com/v1/agents/f398a568-77b1-43c3-8289-f0c93b521b75",
+      "capturedAt": "2026-10-05T06:52:59.748338+00:00",
+      "httpStatus": 200,
+      "sha256": "dabf51a412d6db467ea05469336518c3109282dddc3927a3aacad5c28038ea3d"
+    },
+    {
+      "file": "root-keys.txt",
+      "url": "https://transparency.ans.godaddy.com/root-keys",
+      "capturedAt": "2026-10-05T06:53:00.737488+00:00",
+      "httpStatus": 200,
+      "sha256": "33ebb937f83712d606d46d54c9a10a1a855aaa549a69b09b0e9bec89b4a62e12"
+    },
+    {
+      "file": "identity-chain.pem",
+      "source": "Existing public-only certificate export; identity leaf came from human-run ANS certificate response; chain fetched from official repository URLs",
+      "sha256": "20ef6f3b0a3462bc2b5549c41e9744c5837b7591139d8d0634ce08dc6e4ebb74",
+      "sourceUrl": "https://api.godaddy.com/v1/agents/f398a568-77b1-43c3-8289-f0c93b521b75/certificates/identity",
+      "capturedAt": "2026-10-05T07:00:58.393266+00:00",
+      "captureKind": "Local copy of human-exported public certificate; this agent made no authenticated request",
+      "identityLeafDerSha256": "21cb7010c94418f440beeb7009885f2262ba09e94377f95121a735d315c047be",
+      "chainSources": [
+        "https://certs.godaddy.com/repository/gd_pc_ans_issuing-pr1v1.crt",
+        "https://certs.godaddy.com/repository/gd_pc_root-pr1.crt"
+      ]
+    },
+    {
+      "file": "ca.pem",
+      "source": "Existing public-only certificate export; identity leaf came from human-run ANS certificate response; chain fetched from official repository URLs",
+      "sha256": "ca1f133f17a26846372c6e619d07906803062f3cda007a5509d9da2cd5eeae65",
+      "sourceUrl": "https://certs.godaddy.com/repository/gd_pc_root-pr1.crt",
+      "capturedAt": "2026-10-05T07:00:58.393266+00:00",
+      "captureKind": "Local copy of previously public HTTPS-fetched root certificate",
+      "derSha256": "5a6e00cb12487fa74942b5ca9cf5f8dee5a52725ffb76488d3e8f9cf4c524f8f"
+    },
+    {
+      "file": "log-key.jwk",
+      "source": "Converted root-keys.txt SPKI, verified SHA256 prefix c9e2f584",
+      "sha256": "53566f34e49890cd29d15645f4e3ba4df395160f29d9c25a0f1fa3bdaa66098c"
+    }
+  ],
+  "verificationTime": "2026-10-05T06:52:59.748338+00:00"
+}

@@ -1,0 +1,38 @@
+{
+  "name": "zipviz",
+  "version": "0.1.0",
+  "description": "Agent-native CLI for the ZipViz .viz registry: local Ed25519 keys, invite redemption, verification",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "zipviz": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "NOTICE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "@types/node": "22.19.19",
+    "eslint": "9.39.4",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.59.4",
+    "vitest": "4.1.11"
+  },
+  "dependencies": {
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@scure/base": "2.4.0"
+  }
+}
