@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { npubEncode, verifyBuzzEvent } from "../src/buzz/index.js";
 import {
   LINK_DOC_VERSION, LINK_STATEMENT_PREFIX, linkStatement, PROVISIONAL_LINK_EVENT_KIND,
-  verifyIdentityLink,
+  REGISTRY_CAVEAT, registryCaveat, verifyIdentityLink,
 } from "../src/link/index.js";
 import { authTag, signEvent } from "./buzz-helpers.js";
 import { DOMAIN, ISSUED_AT, linkEvent, makeKeys, makeLink } from "./link-helpers.js";
@@ -70,6 +70,23 @@ describe("identity link, positive vectors", () => {
     expect(impostor.link.ed25519_pubkey).not.toBe(keys.edPublic);
     expect(impostor.link.registry_checked).toBe(false);
     expect(verifyIdentityLink({ ...doc, v: 99 }).link.registry_checked).toBe(false);
+  });
+
+  it("names the domain in the registry caveat on success, and keeps the generic caveat without one", () => {
+    const { doc } = makeLink(keys);
+    const ok = verifyIdentityLink(doc);
+    expect(ok.ok).toBe(true);
+    expect(ok.link.caveat).toBe(registryCaveat(DOMAIN));
+    expect(ok.link.caveat).toContain(`zipviz verify ${DOMAIN}`);
+    expect(ok.link.caveat).not.toContain("<name>");
+    expect(ok.link.caveat).toMatch(/NOT compared with the key the registry lists/);
+
+    // Failures with no usable domain keep the generic caveat.
+    for (const bad of [null, [], { ...doc, v: 99 }, { ...doc, domain: "example.com" }]) {
+      const result = verifyIdentityLink(bad);
+      expect(result.ok).toBe(false);
+      expect(result.link.caveat).toBe(REGISTRY_CAVEAT);
+    }
   });
 
   it("reports, without rejecting, an event created_at that differs from issued_at", () => {

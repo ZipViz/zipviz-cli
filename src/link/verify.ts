@@ -216,7 +216,8 @@ export function verifyIdentityLink(input: unknown): LinkVerification {
     link: {
       valid,
       registry_checked: false,
-      caveat: REGISTRY_CAVEAT,
+      // On success the document named a valid .viz domain, so point at the exact check to run.
+      caveat: valid ? registryCaveat(domain) : REGISTRY_CAVEAT,
       ...known,
       statement,
       ...(valid ? {} : { reason: failure.reason, message: failure.message }),
