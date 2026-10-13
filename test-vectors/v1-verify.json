@@ -1,0 +1,297 @@
+{
+  "name": "ZipViz v1 /verify signature test vectors",
+  "format_version": 1,
+  "warning": "TEST ONLY. Both keys are derived from published seeds and are not secret. Never register them, trust them, or use them for anything real.",
+  "rule": {
+    "signed_bytes": "UTF-8 of JSON.stringify({ v: 1, from, message, timestamp }), keys in exactly that order, no whitespace",
+    "algorithm": "Ed25519 (RFC 8032), pure, no prehash",
+    "signature_encoding": "standard base64 with padding, 64 bytes decoded",
+    "public_key_encoding": "lowercase hex, 32 bytes",
+    "timestamp_format": "ISO 8601 UTC as produced by Date.prototype.toISOString(), e.g. 2026-10-13T00:00:00.000Z",
+    "window_ms": 300000
+  },
+  "test_keys": {
+    "A": {
+      "label": "TEST ONLY key A",
+      "seed_utf8": "zipviz-v1-verify-TEST-ONLY-key-A",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5"
+    },
+    "B": {
+      "label": "TEST ONLY key B",
+      "seed_utf8": "zipviz-v1-verify-TEST-ONLY-key-B",
+      "public_key": "4d5dec8d8cfe2a9331cd5a824d9ec5efd672f7ecb82b37e54fbefe5cb5162762"
+    }
+  },
+  "cases": [
+    {
+      "id": "valid",
+      "description": "Correctly signed envelope, 60 seconds old. Byte for byte what `zipviz verify` sends.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": true,
+        "reason": null
+      }
+    },
+    {
+      "id": "message_changed_one_char",
+      "description": "Last character of message changed after signing; signature reused from `valid`.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000001",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000001\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_SIG_MISMATCH"
+      }
+    },
+    {
+      "id": "wrong_key",
+      "description": "Envelope from `valid`, but the key registered for `from` is test key B.",
+      "public_key": "4d5dec8d8cfe2a9331cd5a824d9ec5efd672f7ecb82b37e54fbefe5cb5162762",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_SIG_MISMATCH"
+      }
+    },
+    {
+      "id": "replayed_different_from",
+      "description": "Envelope from `valid` replayed with `from` changed to another name that has the same key registered. `from` is inside the signed bytes, so it fails.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-beta-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==\"}",
+      "envelope": {
+        "from": "test-beta-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-beta-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_SIG_MISMATCH"
+      }
+    },
+    {
+      "id": "timestamp_too_old",
+      "description": "Correctly signed, but the timestamp is 5 minutes 1 second before `now`.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-12T23:55:59.000Z\",\"signature\":\"T+frvxVO+R0Usee7oD4SwugUE2Rxtg/EJO8xn+MCtQnkuYPJHM8DrQ0dep7CsSjllZPOH0KGJzFf63ZApO4vBg==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-12T23:55:59.000Z",
+        "signature": "T+frvxVO+R0Usee7oD4SwugUE2Rxtg/EJO8xn+MCtQnkuYPJHM8DrQ0dep7CsSjllZPOH0KGJzFf63ZApO4vBg=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-12T23:55:59.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_TIMESTAMP_STALE"
+      }
+    },
+    {
+      "id": "timestamp_too_far_in_future",
+      "description": "Correctly signed, but the timestamp is 5 minutes 1 second after `now`.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:06:01.000Z\",\"signature\":\"3iJWSK3N9ADZpwOnMH2C4baKrqI7W3DiK7SbCfpwI405Is2PWNXDY/2ma5FoYtgPZFy0kwXV5byrCC8un/tLBA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:06:01.000Z",
+        "signature": "3iJWSK3N9ADZpwOnMH2C4baKrqI7W3DiK7SbCfpwI405Is2PWNXDY/2ma5FoYtgPZFy0kwXV5byrCC8un/tLBA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:06:01.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_TIMESTAMP_FUTURE"
+      }
+    },
+    {
+      "id": "timestamp_just_inside_window",
+      "description": "Correctly signed, timestamp 4 minutes 59 seconds before `now`: inside the window.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-12T23:56:01.000Z\",\"signature\":\"JtthYvGOT9Autyxqa2n49SBYKQ+O8YxpztwzDdoSMh8SGzM2jK2gICbhopk/J6G4+dSmhJMwCDw5ldC/M384Dw==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-12T23:56:01.000Z",
+        "signature": "JtthYvGOT9Autyxqa2n49SBYKQ+O8YxpztwzDdoSMh8SGzM2jK2gICbhopk/J6G4+dSmhJMwCDw5ldC/M384Dw=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-12T23:56:01.000Z\"}",
+      "expected": {
+        "verified": true,
+        "reason": null
+      }
+    },
+    {
+      "id": "timestamp_malformed",
+      "description": "Timestamp has hour 25 and minute 61, so it is not a real time. The signature over it is valid; only the format is wrong.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T25:61:00.000Z\",\"signature\":\"bhjxvoZkg0fb+fVadX2USNTRxhNzeDFc0uKtS+1bjMYFT+oulYk56GvWVXjOBSfVq5SoHPAc09bt2dRB7kHECA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T25:61:00.000Z",
+        "signature": "bhjxvoZkg0fb+fVadX2USNTRxhNzeDFc0uKtS+1bjMYFT+oulYk56GvWVXjOBSfVq5SoHPAc09bt2dRB7kHECA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T25:61:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_TIMESTAMP_FORMAT"
+      }
+    },
+    {
+      "id": "signature_truncated",
+      "description": "Signature from `valid` with its last byte removed (63 bytes instead of 64).",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0"
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_SIG_FORMAT"
+      }
+    },
+    {
+      "id": "empty_field",
+      "description": "`from` is an empty string. The signature over the empty name is valid, but an empty name identifies no one.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"Hz3+lWIO+kpexUrASc55GQI63UO7ENznYjJqF15hOF2WI/QrNNRTYflEWxmSzKrZCr5mFHFfKcDJ6yRroH9DDg==\"}",
+      "envelope": {
+        "from": "",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "Hz3+lWIO+kpexUrASc55GQI63UO7ENznYjJqF15hOF2WI/QrNNRTYflEWxmSzKrZCr5mFHFfKcDJ6yRroH9DDg=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_FIELD_EMPTY"
+      }
+    },
+    {
+      "id": "whitespace_added_to_message",
+      "description": "One trailing space added to `message` after signing; signature reused from `valid`.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000 \",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000 ",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000 \",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_SIG_MISMATCH"
+      }
+    },
+    {
+      "id": "envelope_key_order_changed",
+      "description": "Same values as `valid`, but the request body lists its keys in a different order. The verifier rebuilds the signed bytes in fixed order, so it passes.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"signature\":\"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"from\":\"test-alpha-1000.z.viz\"}",
+      "envelope": {
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "from": "test-alpha-1000.z.viz"
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": true,
+        "reason": null
+      }
+    },
+    {
+      "id": "envelope_whitespace_formatting",
+      "description": "Same values as `valid`, but the request body is pretty-printed with extra whitespace. Formatting outside the field values is not signed, so it passes.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\n  \"from\": \"test-alpha-1000.z.viz\",\n  \"message\": \"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\n  \"timestamp\": \"2026-10-13T00:00:00.000Z\",\n  \"signature\": \"KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA==\"\n}\n",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "KtUcns9TFKnEt+cbXGkqSAOrArNkiSbxJLV1Ed1omgi7rglTsgRvtdKpZIgBkHOZZcexJtruZ7hdrqnXWaV0CA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": true,
+        "reason": null
+      }
+    },
+    {
+      "id": "signed_with_sorted_keys",
+      "description": "Signed over the same fields with keys sorted alphabetically (as JCS / RFC 8785 would), not in the v1 order. Must fail.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"TwyrfK0GDNXbx2gUTg+JRPADkZJSikjxfjr0+iRVR4LGkKjpqLlpBhsHx6EOpMInuw2j6FWQiVGQKuu6KR1lCQ==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "TwyrfK0GDNXbx2gUTg+JRPADkZJSikjxfjr0+iRVR4LGkKjpqLlpBhsHx6EOpMInuw2j6FWQiVGQKuu6KR1lCQ=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": false,
+        "reason": "E_SIG_MISMATCH"
+      }
+    },
+    {
+      "id": "valid_unicode_and_escapes",
+      "description": "Correctly signed message with non-ASCII text, an emoji, quotes, a backslash, a newline and a tab. Signed bytes are UTF-8 with JSON.stringify escaping (non-ASCII is not escaped).",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"Grüße 👋 \\\"quoted\\\" back\\\\slash\\nsecond line\\tafter tab\",\"timestamp\":\"2026-10-13T00:00:00.000Z\",\"signature\":\"73kaIEDtF2M0vIz0x9rYLYLZ3HUnfrfFNNJGvN4tIn/Y1MDk02u4B7a7iabddGuCkH7ky3Lwm9ZJGcRW7KWIBA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "Grüße 👋 \"quoted\" back\\slash\nsecond line\tafter tab",
+        "timestamp": "2026-10-13T00:00:00.000Z",
+        "signature": "73kaIEDtF2M0vIz0x9rYLYLZ3HUnfrfFNNJGvN4tIn/Y1MDk02u4B7a7iabddGuCkH7ky3Lwm9ZJGcRW7KWIBA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"Grüße 👋 \\\"quoted\\\" back\\\\slash\\nsecond line\\tafter tab\",\"timestamp\":\"2026-10-13T00:00:00.000Z\"}",
+      "expected": {
+        "verified": true,
+        "reason": null
+      }
+    }
+  ]
+}
