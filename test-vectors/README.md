@@ -29,7 +29,8 @@ A v1 envelope has four string fields: `from` (the sender's `.viz` name), `messag
 4. **Freshness.** `timestamp` is an ISO 8601 UTC time in the form
    `Date.prototype.toISOString()` produces, for example `2026-10-13T00:00:00.000Z`.
    It must be no more than 5 minutes (300,000 ms) before or after the verifier's
-   clock.
+   clock. The limit is inclusive: a skew of exactly 300,000 ms either way is
+   accepted, and only a skew greater than 300,000 ms is rejected.
 
 A verifier **rebuilds** the signed bytes from the received field values. It never
 signs or checks the raw request body. That is why the key order and whitespace of
@@ -54,6 +55,7 @@ Each case:
 | `description` | What was done to the envelope. |
 | `public_key` | The key the registry holds for `from`. Verify against this key. |
 | `now` | The verifier's clock for this case. Use it instead of the real time. |
+| `timestamp_offset_ms` | Only on the two exact-boundary cases: `timestamp` minus `now`, in milliseconds (`-300000` or `300000`). It states the offset explicitly; `now` and `timestamp` already imply it. |
 | `body` | The exact `POST /v1/verify` request body, as raw JSON text. **This is the input.** |
 | `envelope` | `body` parsed, for convenience. Same values as `body`. |
 | `signed_bytes` | The bytes a correct verifier rebuilds from `body`. Use it for debugging. A failing case can have a correct `signed_bytes` and still fail, because its signature was made over different bytes. |
@@ -97,6 +99,8 @@ seconds after the valid timestamp and the key is test key A.
 | `timestamp_too_old` | Correctly signed, but signed 5 minutes 1 second before `now`. | `false`, `E_TIMESTAMP_STALE` |
 | `timestamp_too_far_in_future` | Correctly signed, but signed 5 minutes 1 second after `now`. | `false`, `E_TIMESTAMP_FUTURE` |
 | `timestamp_just_inside_window` | Correctly signed, 4 minutes 59 seconds before `now`. | `true` |
+| `timestamp_exactly_at_window_past` | Correctly signed, exactly 300,000 ms before `now` (`timestamp_offset_ms` `-300000`). | `true` |
+| `timestamp_exactly_at_window_future` | Correctly signed, exactly 300,000 ms after `now` (`timestamp_offset_ms` `300000`). | `true` |
 | `timestamp_malformed` | `timestamp` is `2026-10-13T25:61:00.000Z` (hour 25, minute 61). The signature over it is genuine; only the time is invalid. | `false`, `E_TIMESTAMP_FORMAT` |
 | `signature_truncated` | The `valid` signature with its last byte removed (63 bytes). | `false`, `E_SIG_FORMAT` |
 | `empty_field` | `from` is an empty string. The signature over the empty name is genuine, but an empty name identifies no one. | `false`, `E_FIELD_EMPTY` |
@@ -109,7 +113,9 @@ seconds after the valid timestamp and the key is test key A.
 The last three cases go beyond the original list. Two of them cover the other
 reading of an ambiguous case (below). The Unicode case catches the most common
 cross-language bug: a JSON library that escapes non-ASCII text or adds spaces
-after `:` and `,` (Python's `json.dumps` does both by default).
+after `:` and `,` (Python's `json.dumps` does both by default). The two
+`timestamp_exactly_at_window_*` cases were added in review to pin the inclusive
+5-minute limit (see below).
 
 ## Decisions on ambiguous cases
 
@@ -123,11 +129,14 @@ after `:` and `,` (Python's `json.dumps` does both by default).
   so the companion case `signed_with_sorted_keys` must fail. A verifier that
   checked the raw body bytes, or sorted the keys before checking, would get these
   two cases wrong.
-- **Just inside the window.** The limit is "no more than 5 minutes". The CLI's
-  `doctor` command treats only skew beyond 300,000 ms as outside the window, but
-  the registry's own comparison (`<` or `<=`) is not in this repo. So the vectors
-  stay one second either side of the limit (4:59 and 5:01) and do not pin the
-  behavior at exactly 5:00.
+- **Just inside the window, and the exact limit.** The limit is "no more than 5
+  minutes", and it is inclusive. The registry's `POST /v1/verify` handler computes
+  `const skewMs = Math.abs(Date.now() - tsMs);` and rejects only when
+  `skewMs > 5 * 60 * 1000`. A skew of exactly 300,000 ms in either direction is
+  therefore accepted, which the CLI's `doctor` command matches (it treats only
+  skew beyond 300,000 ms as outside the window). The vectors pin this with two
+  accepted cases at exactly `-300000` and `+300000` ms, and keep the cases one
+  second either side of the limit (4:59 accepted, 5:01 rejected).
 - **Malformed timestamp.** The value is shaped like a timestamp but is not a real
   time, so every reasonable parser rejects it. The vectors do not decide whether
   other well-formed ISO 8601 variants (for example, without milliseconds) are

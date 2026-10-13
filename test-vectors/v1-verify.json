@@ -150,6 +150,44 @@
       }
     },
     {
+      "id": "timestamp_exactly_at_window_past",
+      "description": "Correctly signed, timestamp exactly 5 minutes (300,000 ms) before `now` (timestamp_offset_ms -300000). The limit is inclusive, so it passes.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "timestamp_offset_ms": -300000,
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-12T23:56:00.000Z\",\"signature\":\"cJL3Lw1w5RRJqGcXFMVP7NlFcvt/wZeQFfoptyxLizJbeBep8hzjDUpGh9NIK7frCPyavY7hO5lwLu+LSluBDQ==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-12T23:56:00.000Z",
+        "signature": "cJL3Lw1w5RRJqGcXFMVP7NlFcvt/wZeQFfoptyxLizJbeBep8hzjDUpGh9NIK7frCPyavY7hO5lwLu+LSluBDQ=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-12T23:56:00.000Z\"}",
+      "expected": {
+        "verified": true,
+        "reason": null
+      }
+    },
+    {
+      "id": "timestamp_exactly_at_window_future",
+      "description": "Correctly signed, timestamp exactly 5 minutes (300,000 ms) after `now` (timestamp_offset_ms +300000). The limit is inclusive, so it passes.",
+      "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",
+      "now": "2026-10-13T00:01:00.000Z",
+      "timestamp_offset_ms": 300000,
+      "body": "{\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:06:00.000Z\",\"signature\":\"7Zy7QoEXJ58pCn2+q1z644Ek2Ntk6OmWX1/uH0kJvDEcrd/R5z3vjhTiJPYZYzOaT1v0iT6ao4KAlKJ3GvmfCA==\"}",
+      "envelope": {
+        "from": "test-alpha-1000.z.viz",
+        "message": "zipviz-cli key proof 00000000-0000-4000-8000-000000000000",
+        "timestamp": "2026-10-13T00:06:00.000Z",
+        "signature": "7Zy7QoEXJ58pCn2+q1z644Ek2Ntk6OmWX1/uH0kJvDEcrd/R5z3vjhTiJPYZYzOaT1v0iT6ao4KAlKJ3GvmfCA=="
+      },
+      "signed_bytes": "{\"v\":1,\"from\":\"test-alpha-1000.z.viz\",\"message\":\"zipviz-cli key proof 00000000-0000-4000-8000-000000000000\",\"timestamp\":\"2026-10-13T00:06:00.000Z\"}",
+      "expected": {
+        "verified": true,
+        "reason": null
+      }
+    },
+    {
       "id": "timestamp_malformed",
       "description": "Timestamp has hour 25 and minute 61, so it is not a real time. The signature over it is valid; only the format is wrong.",
       "public_key": "7c3a20da2c16a591348196032c38e3d0a2459b2d3d303d5145478220dfd2c9f5",

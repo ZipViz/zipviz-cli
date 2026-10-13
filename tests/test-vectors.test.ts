@@ -30,6 +30,8 @@ type VectorCase = {
   description: string;
   public_key: string;
   now: string;
+  /** Only on the exact-boundary cases: timestamp minus `now`, in milliseconds. */
+  timestamp_offset_ms?: number;
   body: string;
   envelope: Envelope;
   signed_bytes: string | null;
@@ -173,6 +175,8 @@ describe("v1 /verify test vectors: file", () => {
       "empty_field",
       "whitespace_added_to_message",
       "envelope_key_order_changed",
+      "timestamp_exactly_at_window_past",
+      "timestamp_exactly_at_window_future",
     ]));
     for (const c of vectors.cases) {
       expect([KEY_A.public_key, KEY_B.public_key]).toContain(c.public_key);
@@ -242,7 +246,10 @@ describe("v1 /verify test vectors: each failing case breaks exactly one thing", 
   });
 
   it("timing, format and empty-field cases carry a genuine signature over their own bytes", () => {
-    for (const id of ["timestamp_too_old", "timestamp_too_far_in_future", "timestamp_just_inside_window", "timestamp_malformed", "empty_field"]) {
+    for (const id of [
+      "timestamp_too_old", "timestamp_too_far_in_future", "timestamp_just_inside_window",
+      "timestamp_exactly_at_window_past", "timestamp_exactly_at_window_future", "timestamp_malformed", "empty_field",
+    ]) {
       const c = byId(id);
       expect(signatureOver(c.signed_bytes!, str(c, "signature"), c.public_key), id).toBe(true);
     }
@@ -253,6 +260,21 @@ describe("v1 /verify test vectors: each failing case breaks exactly one thing", 
     expect(offset("timestamp_too_old")).toBe(WINDOW_MS + 1000);
     expect(offset("timestamp_too_far_in_future")).toBe(-(WINDOW_MS + 1000));
     expect(offset("timestamp_just_inside_window")).toBe(WINDOW_MS - 1000);
+  });
+
+  it("puts the exact-boundary cases at exactly -300000 and +300000 ms, stated explicitly, and accepts both", () => {
+    const boundary = [
+      ["timestamp_exactly_at_window_past", -WINDOW_MS],
+      ["timestamp_exactly_at_window_future", WINDOW_MS],
+    ] as const;
+    for (const [id, offsetMs] of boundary) {
+      const c = byId(id);
+      expect(c.timestamp_offset_ms, id).toBe(offsetMs);
+      expect(Date.parse(str(c, "timestamp")) - Date.parse(c.now), id).toBe(offsetMs);
+      expect(c.public_key, id).toBe(valid.public_key);
+      expect(str(c, "message"), id).toBe(validMessage);
+      expect(c.expected, id).toEqual({ verified: true, reason: null });
+    }
   });
 
   it("uses a timestamp that no ISO 8601 parser accepts", () => {
@@ -284,7 +306,10 @@ describe("v1 /verify test vectors: the CLI's own signer", () => {
     const key = new LocalKey(str(valid, "from"), "unused-test-only-path", testPrivateKey(KEY_A.seed_utf8));
     expect(key.publicKey).toBe(KEY_A.public_key);
     expect(key.sign(valid.signed_bytes!).toString("base64")).toBe(str(valid, "signature"));
-    for (const id of ["timestamp_just_inside_window", "valid_unicode_and_escapes"]) {
+    for (const id of [
+      "timestamp_just_inside_window", "timestamp_exactly_at_window_past", "timestamp_exactly_at_window_future",
+      "valid_unicode_and_escapes",
+    ]) {
       const c = byId(id);
       expect(key.sign(c.signed_bytes!).toString("base64"), id).toBe(str(c, "signature"));
     }
