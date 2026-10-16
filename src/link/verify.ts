@@ -61,7 +61,9 @@ function verifyEd25519(statement: string, pubkeyHex: string, signature: unknown)
   }
   let valid = false;
   try {
-    valid = ed25519.verify(hexToBytes(signature), utf8ToBytes(statement), hexToBytes(pubkeyHex));
+    // Strict RFC 8032 verification, as for A2A JWS (src/a2a/jws.ts): the ZIP-215 default would accept a small-order key with a
+    // fixed signature, so the link would look co-signed without anyone holding an Ed25519 private key.
+    valid = ed25519.verify(hexToBytes(signature), utf8ToBytes(statement), hexToBytes(pubkeyHex), { zip215: false });
   } catch {
     valid = false;
   }

@@ -347,14 +347,17 @@ function normalizeValue(
     const entries = Object.entries(value);
     if (entries.length === 0 && !field.required) return undefined;
     const result: JsonObject = {};
+    // Every own key is defined as an own property, so a "__proto__" key is kept and covered instead of hitting the setter.
+    const put = (key: string, item: JsonValue) =>
+      Object.defineProperty(result, key, { value: item, enumerable: true, writable: true, configurable: true });
     for (const [key, item] of entries) {
       const itemPointer = childPointer(pointer, key);
       if (field.mapValueKind === "string") {
         if (typeof item !== "string") return invalid(itemPointer);
-        result[key] = item;
+        put(key, item);
       } else {
         if (!field.mapValueChild) return invalid(itemPointer);
-        result[key] = normalizeMessage(field.mapValueChild, item, itemPointer, uncovered, depth + 1);
+        put(key, normalizeMessage(field.mapValueChild, item, itemPointer, uncovered, depth + 1));
       }
     }
     return result;
