@@ -2,7 +2,7 @@
 
 `zipviz check --ans` checks one Agent Name Service name, its identity certificate, and a
 transparency-log inclusion proof. It does not establish that the name is still unrevoked, and it
-does not score reputation or behaviour.
+does not score reputation or behavior.
 
 The dispatch lives in `src/main.ts`, next to `check --card`.
 
@@ -128,7 +128,7 @@ responses, and no redirect to a private, link-local, or loopback address.
 - Consistency proofs between two tree heads.
 - OCSP or CRL retrieval.
 - Server-certificate or mTLS handshakes.
-- Trust Index, verifiable-claim evaluation, reputation, or behaviour.
+- Trust Index, verifiable-claim evaluation, reputation, or behavior.
 - Live log freshness (`live_log: "not proved"`). The captured live badge proves inclusion at one
   signed tree head, without consulting later log entries.
 - A signed tree size in the draft-01 profile; live V1 checks the signed checkpoint size.

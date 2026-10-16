@@ -10,8 +10,7 @@ The CLI is a thin client: it only calls the public registry API. It has no `regi
 direct registration is operator-gated (bearer token held by the operator), not self-serve.
 Invites are the self-serve path, and only work on a registry where the operator has enabled them.
 
-> Status: v0.1, private (`"private": true`, not published to npm). `npx zipviz` will work once a
-> release is approved; until then run it from a checkout (below).
+> Status: v0.1.0. Run it from a checkout (below).
 
 ## Agent quickstart
 
@@ -411,7 +410,7 @@ Key-file security errors retain their existing `1` exit code. See
 Check an [Agent Name Service v2](https://datatracker.ietf.org/doc/draft-narajala-courtney-ansv2/) name
 (`draft-narajala-courtney-ansv2-01`). The command checks the name, the identity certificate's URI
 SAN and Private CA chain, and the transparency-log inclusion proof. It does not score reputation or
-behaviour, and it does not check DANE.
+behavior, and it does not check DANE.
 
 Trust anchors are separate pinned files. A bundle cannot carry the CA or the RA and KMS keys.
 
@@ -456,6 +455,10 @@ npm run lint      # eslint
 npm run build     # dist/
 ```
 
-## Licence
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
+
+## License
 
 Apache-2.0. See `LICENSE` and `NOTICE`.

@@ -6,5 +6,5 @@
 - `test-vectors.txt`: copied verbatim from the "Test Vectors" text block.
 - `signed-event.json`: copied verbatim from the "Signed Event Example" JSON block.
 - `invalid-vectors.md`: copied verbatim from the "Invalid Test Vectors" section.
-- Source repository licence: Apache-2.0.
+- Source repository license: Apache-2.0.
 - Date fetched: 2026-10-02.
