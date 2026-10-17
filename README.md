@@ -459,6 +459,12 @@ npm run lint      # eslint
 npm run build     # dist/
 ```
 
+## Related
+
+- [zipviz-mcp](https://github.com/ZipViz/zipviz-mcp): use the registry from Claude, Cursor and other MCP clients.
+- [zipviz-openapi](https://github.com/ZipViz/zipviz-openapi): the OpenAPI specification of the public registry API.
+- [zipviz.ai/developers](https://zipviz.ai/developers)
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).
