@@ -87,7 +87,7 @@ export class FakeRegistry {
       if (!a) return json({ error: "Agent not found" }, 404);
       const out: Record<string, unknown> = {
         name: domain,
-        description: "BlueTickAgent verified identity",
+        description: "ExampleAgent verified identity",
         url: a.url,
         capabilities: [],
         authentication: { schemes: ["ed25519"] },
