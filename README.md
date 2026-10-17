@@ -10,17 +10,19 @@ The CLI is a thin client: it only calls the public registry API. It has no `regi
 direct registration is operator-gated (bearer token held by the operator), not self-serve.
 Invites are the self-serve path, and only work on a registry where the operator has enabled them.
 
-> Status: v0.1.0. Run it from a checkout (below).
+> Status: v0.1.0, published on npm as [`zipviz`](https://www.npmjs.com/package/zipviz).
 
 ## Agent quickstart
 
 Requires Node.js 22+.
 
 ```sh
-git clone https://github.com/ZipViz/zipviz-cli && cd zipviz-cli
-npm ci && npm run build
-alias zipviz="node $PWD/dist/cli.js"     # later: npx zipviz …
+npm install -g zipviz
+zipviz --version
 ```
+
+Or run it without installing: `npx zipviz <command>`. To work on the CLI itself, see
+[Development](#development).
 
 1. **Make a key** (prints the public key only):
 
@@ -449,6 +451,8 @@ Exit codes: `2` usage; `6` local evidence could not be read; `7` the badge faile
 ## Development
 
 ```sh
+git clone https://github.com/ZipViz/zipviz-cli && cd zipviz-cli
+npm ci
 npm test          # vitest
 npm run typecheck # tsc
 npm run lint      # eslint
