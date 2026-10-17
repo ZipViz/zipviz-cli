@@ -2,14 +2,23 @@
   "name": "zipviz",
   "version": "0.1.0",
   "description": "Agent-native CLI for the ZipViz .viz registry: local Ed25519 keys, invite redemption, verification",
-  "private": true,
   "license": "Apache-2.0",
+  "homepage": "https://github.com/ZipViz/zipviz-cli#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ZipViz/zipviz-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ZipViz/zipviz-cli/issues"
+  },
   "type": "module",
   "bin": {
-    "zipviz": "./dist/cli.js"
+    "zipviz": "dist/cli.js"
   },
   "files": [
     "dist",
+    "README.md",
+    "LICENSE",
     "NOTICE"
   ],
   "engines": {
