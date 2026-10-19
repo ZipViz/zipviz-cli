@@ -106,14 +106,14 @@ function secretForms(pem: string): string[] {
 const CHECK_IDS: CheckId[] = ["key_store", "registry", "invites", "clock"];
 
 describe("zipviz doctor: JSON shape and exit codes", () => {
-  it("reports every check with a stable shape; invites stay unknown so a healthy setup exits 12, never 0", async () => {
+  it("reports every check with a stable shape; invites stays unknown but is informational, so a healthy setup exits 0", async () => {
     const rig = doctorRig({});
     expect((await rig.h.cli("keygen", "--name", "sophie")).code).toBe(0);
     const { code, body } = await rig.json("doctor");
-    expect(code).toBe(DOCTOR_UNKNOWN_EXIT);
+    expect(code).toBe(0);
     expect(Object.keys(body)).toEqual(["ok", "command", "status", "api", "zipviz_home", "summary", "checks"]);
     expect(body).toMatchObject({
-      ok: false, command: "doctor", status: "unknown", api: "https://api.zipviz.ai",
+      ok: true, command: "doctor", status: "ok", api: "https://api.zipviz.ai",
       zipviz_home: path.join(rig.h.home, ".zipviz"),
       summary: { ok: 3, failed: 0, unknown: 1 },
     });
@@ -132,16 +132,24 @@ describe("zipviz doctor: JSON shape and exit codes", () => {
     expect(body.checks.clock).toMatchObject({ status: "ok", window_ms: 300_000 });
   });
 
-  it("prints one line per check and a result line; unknown is labelled as not healthy", async () => {
+  it("prints one line per check and a result line; the unknown invites check is labelled informational", async () => {
     const rig = doctorRig({});
     await rig.h.cli("keygen", "--name", "sophie");
     const r = await rig.cli("doctor");
-    expect(r.code).toBe(DOCTOR_UNKNOWN_EXIT);
+    expect(r.code).toBe(0);
     expect(r.out).toMatch(/^\[ok\] +key store /m);
     expect(r.out).toMatch(/^\[ok\] +registry /m);
     expect(r.out).toMatch(/^\[unknown\] +invites /m);
     expect(r.out).toMatch(/^\[ok\] +clock .*does not verify any signature/m);
-    expect(r.out).toMatch(/^result: unknown: 3 ok, 0 failed, 1 unknown \(unknown is not healthy/m);
+    expect(r.out).toMatch(/^result: ok: 3 ok, 0 failed, 1 unknown \(invites is informational until the registry has a read-only signal\)$/m);
+  });
+
+  it("still exits 12 and says unknown is not healthy when a counted check is unknown", async () => {
+    const rig = doctorRig("network-error");
+    await rig.h.cli("keygen", "--name", "sophie");
+    const r = await rig.cli("doctor");
+    expect(r.code).toBe(DOCTOR_UNKNOWN_EXIT);
+    expect(r.out).toMatch(/^result: unknown: 1 ok, 0 failed, 3 unknown \(unknown is not healthy/m);
   });
 
   it("exits 11 when any check failed, even if others are unknown, and reports ok:false", async () => {
@@ -166,7 +174,7 @@ describe("zipviz doctor: JSON shape and exit codes", () => {
     const r = await rig.cli("--help");
     expect(r.out).toContain("zipviz doctor");
     expect(r.out).toContain("zipviz backup");
-    expect(r.out).toMatch(/11 a check failed, 12 none failed but/);
+    expect(r.out).toMatch(/11 a check failed,\s+12 none failed but/);
   });
 });
 

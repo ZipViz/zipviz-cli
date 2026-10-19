@@ -11,7 +11,10 @@ import type { Context } from "./commands.js";
  *
  * Every check reports `ok`, `failed` or `unknown`. `unknown` means the CLI could not
  * find out (unreachable registry, no signal, ambiguous timing) and is never shown as
- * healthy. Doctor never writes, chmods, generates keys, redeems, registers or POSTs.
+ * `ok`. The invites check is informational: the registry has no read-only invite
+ * signal, so it is always unknown and does not count toward the result or exit code.
+ * Any other unknown does. Doctor never writes, chmods, generates keys, redeems,
+ * registers or POSTs.
  */
 
 export type CheckStatus = "ok" | "failed" | "unknown";
@@ -26,8 +29,10 @@ export type DoctorCheck = {
 
 /** At least one check failed. */
 export const DOCTOR_FAILED_EXIT = 11;
-/** Nothing failed, but at least one check is unknown. */
+/** Nothing failed, but at least one check that counts is unknown. */
 export const DOCTOR_UNKNOWN_EXIT = 12;
+/** Checks reported in full but left out of the result and exit code. */
+export const INFORMATIONAL_CHECKS: ReadonlySet<string> = new Set(["invites"]);
 
 export const DOCTOR_TIMEOUT_MS = 5_000;
 export const HEALTH_PATH = "/v1/health";
@@ -277,7 +282,9 @@ export async function doctor({ api, keys, parsed }: Context, deps: { now?: () =>
     failed: all.filter((c) => c.status === "failed").length,
     unknown: all.filter((c) => c.status === "unknown").length,
   };
-  const status: CheckStatus = summary.failed > 0 ? "failed" : summary.unknown > 0 ? "unknown" : "ok";
+  const counted = Object.entries(checks).filter(([id]) => !INFORMATIONAL_CHECKS.has(id)).map(([, c]) => c);
+  const status: CheckStatus = counted.some((c) => c.status === "failed") ? "failed"
+    : counted.some((c) => c.status === "unknown") ? "unknown" : "ok";
   const exitCode = status === "failed" ? DOCTOR_FAILED_EXIT : status === "unknown" ? DOCTOR_UNKNOWN_EXIT : 0;
 
   const lines = [`zipviz doctor: registry ${api.origin}, home ${path.dirname(keys.dir)} (read-only)`];
@@ -292,7 +299,8 @@ export async function doctor({ api, keys, parsed }: Context, deps: { now?: () =>
   }
   lines.push(
     `result: ${status}: ${summary.ok} ok, ${summary.failed} failed, ${summary.unknown} unknown`
-    + (status === "unknown" ? " (unknown is not healthy: the CLI could not confirm it)" : ""),
+    + (status === "unknown" ? " (unknown is not healthy: the CLI could not confirm it)"
+      : checks.invites!.status === "unknown" ? " (invites is informational until the registry has a read-only signal)" : ""),
   );
   return {
     ok: status === "ok",

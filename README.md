@@ -97,7 +97,7 @@ TTL is 300–1209600 seconds (default 86400). Share codes privately.
   `{"ok":false,"command":…,"error":{"code":"E_…","message":…,"http_status"?:…}}`.
 - Exit codes: `0` success, `1` error, `2` usage error, `3` partial success: `whoami` listed your
   keys but skipped at least one unsafe or unreadable key. `doctor` uses `11` (a check failed) and `12`
-  (nothing failed, but at least one check is unknown). A2A card commands also use `6` for
+  (nothing failed, but at least one check is unknown; the `invites` check does not count). A2A card commands also use `6` for
   unreadable input, `7` for an unverified card, `8` for valid signatures with uncovered fields,
   and `9` when a remote card fetch is refused or fails.
 - `whoami --json` always includes a `skipped` array. When it exits `3`, the output is still
@@ -123,7 +123,7 @@ private key material. It runs four independent checks and always reports all fou
 | --- | --- |
 | `key_store` | `~/.zipviz` and `~/.zipviz/keys` are present, real directories (not symlinks), owned by you, and not too permissive; every `*.key` file passes the same checks as `whoami` (regular file, no symlink, owned by you, `0600`, Ed25519). A missing, unsafe or unreadable store is reported as `failed` with the reason. |
 | `registry` | one `GET /v1/health` with a 5 second timeout and no redirects. |
-| `invites` | always `unknown` for now: the registry has no read-only way to say whether invites are on, and `doctor` never sends the POST that would tell. `redeem` reports `E_INVITES_DISABLED` when they are off. |
+| `invites` | always `unknown` until the registry has a read-only invite signal: today it has no read-only way to say whether invites are on, and `doctor` never sends the POST that would tell. This check is informational and does not affect the result or exit code. `redeem` reports `E_INVITES_DISABLED` when they are off. |
 | `clock` | your clock against the `Date` header of that same response. The registry rejects signed timestamps more than 5 minutes off its own clock. The check allows for the header's one-second resolution and the request time, and fails within 1 minute of that limit. It measures skew only; it does not verify any signature. |
 
 Each check is `ok`, `failed` or `unknown`:
@@ -133,9 +133,9 @@ Each check is `ok`, `failed` or `unknown`:
   response, a request too slow to judge skew, or no invite signal). **Unknown is not healthy**,
   and it is never reported as `ok`.
 
-Exit codes: `0` every check is `ok`; `11` at least one check `failed`; `12` none failed but at
-least one is `unknown`; `2` usage error. Because `invites` is always `unknown` today, a fully
-working setup exits `12`; scripts that only want to catch problems can treat `11` as the failure.
+Exit codes: `0` nothing failed and nothing is `unknown`, apart from the informational `invites`
+check; `11` at least one check `failed`; `12` none failed but at least one other check is
+`unknown` (for example the registry is unreachable); `2` usage error. A working setup exits `0`.
 
 `--json` shape (stable; check `status` and the exit code, as well as `ok`):
 
