@@ -2,6 +2,15 @@
 
 All notable changes to this project are listed here.
 
+## Unreleased
+
+### Changed
+
+- `doctor`: the `invites` check is informational. It stays `unknown` until the registry has a
+  read-only invite signal, but no longer affects the result or exit code, so a working setup now
+  exits `0` instead of `12`. Any other `unknown` check (for example an unreachable registry) still
+  exits `12`.
+
 ## 0.1.0
 
 First public source release.
