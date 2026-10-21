@@ -40,9 +40,9 @@ usage:
   zipviz whoami                                local keys and their registry status
   zipviz doctor                                read-only health check: key store safety, registry
                                                reachability, invite availability, clock skew
-                                               exit 0 nothing failed or unknown, 11 a check failed,
-                                               12 none failed but some unknown (the invites check
-                                               is informational and does not count)
+                                               exit 0 nothing failed or unknown, apart from the
+                                               informational invites check; 11 a check failed;
+                                               12 none failed but another check is unknown
   zipviz backup                                where your keys live and how to back up / restore them
                                                (prints guidance only; never reads or copies key bytes)
   zipviz check <file|->                       verify a Buzz/Nostr event offline (NIP-01 + NIP-OA owner auth)

@@ -300,7 +300,8 @@ export async function doctor({ api, keys, parsed }: Context, deps: { now?: () =>
   lines.push(
     `result: ${status}: ${summary.ok} ok, ${summary.failed} failed, ${summary.unknown} unknown`
     + (status === "unknown" ? " (unknown is not healthy: the CLI could not confirm it)"
-      : checks.invites!.status === "unknown" ? " (invites is informational until the registry has a read-only signal)" : ""),
+      : status === "ok" && checks.invites!.status === "unknown"
+        ? " (invites is informational until the registry has a read-only signal)" : ""),
   );
   return {
     ok: status === "ok",

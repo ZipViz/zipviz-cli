@@ -159,6 +159,10 @@ describe("zipviz doctor: JSON shape and exit codes", () => {
     expect(body.ok).toBe(false);
     expect(body.status).toBe("failed");
     expect(body.summary).toEqual({ ok: 0, failed: 1, unknown: 3 });
+    // A failed result carries no informational aside about invites.
+    const r = await rig.cli("doctor");
+    expect(r.code).toBe(DOCTOR_FAILED_EXIT);
+    expect(r.out).toMatch(/^result: failed: 0 ok, 1 failed, 3 unknown$/m);
   });
 
   it("rejects positional arguments as a usage error and honours --api", async () => {
@@ -174,7 +178,7 @@ describe("zipviz doctor: JSON shape and exit codes", () => {
     const r = await rig.cli("--help");
     expect(r.out).toContain("zipviz doctor");
     expect(r.out).toContain("zipviz backup");
-    expect(r.out).toMatch(/11 a check failed,\s+12 none failed but/);
+    expect(r.out).toMatch(/11 a check failed;\s+12 none failed but another check is unknown/);
   });
 });
 
