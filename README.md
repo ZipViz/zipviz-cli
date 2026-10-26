@@ -166,6 +166,7 @@ An existing `.lock` or `.recovery` marker stops ordinary mutations with
 `E_INTRO_BUSY`; the CLI never removes or reclaims an existing marker automatically.
 It honors the shared recovery marker both before and after acquiring its own lock,
 preserving confirmed history until separate exclusive recovery is established.
+Remove a leftover marker only after confirming no ZipViz process is running.
 No message transport, automatic close-the-loop DM or identity-grant change is part
 of these commands. Existing conversation tools remain a separate explicit action.
 

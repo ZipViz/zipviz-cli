@@ -281,7 +281,9 @@ describe("private intro dedupe (disposable synthetic fixtures)", () => {
     const recovery = path.join(store.dir, ".recovery");
     writeFileSync(recovery, "synthetic recovery guard", { mode: 0o600 });
     const inode = lstatSync(recovery).ino;
-    await expect(store.assertAvailable("synthetic-peer:new", NOW + 1)).rejects.toMatchObject({ code: "E_INTRO_BUSY" });
+    await expect(store.assertAvailable("synthetic-peer:new", NOW + 1)).rejects.toMatchObject({
+      code: "E_INTRO_BUSY", message: expect.stringContaining("only after confirming no ZipViz process is running"),
+    });
     expect(readFileSync(store.sentPath)).toEqual(before);
     expect(readFileSync(recovery, "utf8")).toBe("synthetic recovery guard");
     expect(lstatSync(recovery).ino).toBe(inode);
@@ -300,7 +302,9 @@ describe("private intro dedupe (disposable synthetic fixtures)", () => {
       writeFileSync(recovery, "synthetic concurrent recovery", { mode: 0o600 });
       return handle;
     });
-    await expect(store.assertAvailable("synthetic-peer:new", NOW + 1)).rejects.toMatchObject({ code: "E_INTRO_BUSY" });
+    await expect(store.assertAvailable("synthetic-peer:new", NOW + 1)).rejects.toMatchObject({
+      code: "E_INTRO_BUSY", message: expect.stringContaining("only after confirming no ZipViz process is running"),
+    });
     expect(readFileSync(store.sentPath)).toEqual(before);
     expect(readFileSync(recovery, "utf8")).toBe("synthetic concurrent recovery");
     expect(existsSync(path.join(store.dir, ".lock"))).toBe(false);

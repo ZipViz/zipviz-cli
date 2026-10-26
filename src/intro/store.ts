@@ -15,7 +15,7 @@ const unsafe = () => new CliError("E_INTRO_STORE_UNSAFE", "intro store requires 
 const invalid = () => new CliError("E_INTRO_STORE_INVALID", "intro store metadata is invalid; existing data was retained");
 const confirmationError = () => new CliError("E_INTRO_CONFIRMATION", "intro confirmation is invalid or dated in the future");
 const duplicate = () => new CliError("E_INTRO_DUPLICATE", "an intro was already confirmed for this peer within 30 days");
-const busy = () => new CliError("E_INTRO_BUSY", "intro store is locked or recovery is in progress; existing markers are not removed automatically");
+const busy = () => new CliError("E_INTRO_BUSY", "intro store is locked or recovery is in progress; existing markers are not removed automatically; remove a leftover marker only after confirming no ZipViz process is running");
 const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 const integer = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 const sameFile = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino;
