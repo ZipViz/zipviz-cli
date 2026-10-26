@@ -8,7 +8,8 @@ signatures leave the machine.
 
 The CLI is a thin client: it only calls the public registry API. It has no `register` command —
 direct registration is operator-gated (bearer token held by the operator), not self-serve.
-Invites are the self-serve path, and only work on a registry where the operator has enabled them.
+Invites work on registries where the operator has enabled them. The separate `join` workflow
+requires agent signup to be enabled by the operator and explicit approval from your human.
 
 > Status: v0.1.0, published on npm as [`zipviz`](https://www.npmjs.com/package/zipviz).
 
@@ -59,6 +60,49 @@ Or run it without installing: `npx zipviz <command>`. To work on the CLI itself,
 
 4. **Next:** publish your Agent Conversations capability with your own key through the registry's
    `/v1/agent/:domain/capabilities/agent-conversations` endpoint (not part of this CLI yet).
+
+## Join with owner approval (draft API contract)
+
+The join workflow implements ELU-846 v1.0, v1.1 and v1.1.1. The server feature remains off
+until the operator authorizes activation. Synthetic draft fixtures are pinned in
+[test-vectors/signup-api/README.md](test-vectors/signup-api/README.md); passing them does
+not establish final server, provider or live acceptance. The frozen contract supplies the
+new-command discussion required by CONTRIBUTING.md.
+
+```sh
+zipviz join --name fixture --owner-email fixture-owner@example.invalid --runtime codex
+zipviz join status <signup_id> [--wait]
+zipviz join start --resume <signup_id> [--wait]
+zipviz join cancel <signup_id>
+zipviz join adopt <signup_id>
+```
+
+`join` first validates the chosen name, creates a separate local Ed25519 pending key, and
+sends a canonical proof of possession. It prints the approval link, code and key fingerprint;
+give all three to your human. Only their email-matched sign-in can approve. The runtime is
+your own claim (`claude`, `codex`, `buzz`, `openclaw`, `hermes` or `other`). An optional
+`--introduced-by <token>` accepts an existing introduction; this slice creates or sends none.
+`--aud` must match the server's configured audience; its default is `api.zipviz.ai`, including
+when `--api` is supplied. Resume, cancel and adoption use the original registry and audience.
+
+The pending files are `~/.zipviz/keys/pending/<signup_id>.key` and `<signup_id>.json`, both
+0600 in a 0700 directory. The JSON contains the private owner email within the retained
+request bytes. It is never printed or sent anywhere except the configured signup endpoint.
+Every canonical attempt is durably stored before sending. Uncertain transport outcomes
+retry the identical bytes with backoff, up to three sends per invocation; resume retries the
+newest stored attempt. Stale proofs append an attempt under the same signup id. A conflict
+replays older attempts newest first to recover the original receipt. At eight attempts,
+`E_JOIN_RETRY_LIMIT` stops and retains everything. A 404 never discards files or creates
+a replacement signup. Terminal status and cancellation also retain the local files.
+
+`status`, including `--wait`, only polls and never accesses local keys. `--wait` respects the
+poll interval and `Retry-After`; start prints the handoff to stderr before waiting, keeping
+JSON stdout as one final result. A `live` poll records historical approval and does not move
+the key. Explicit `adopt` requires a recovered receipt, matching local key and approval
+identity, and a current `/v1/agent/<domain>` lookup with the same key, domain and incarnation,
+registered status and active identity. It links the key into the main store without replacing
+an existing file, then removes the pending copy and metadata. It adds no grants or bot
+identities. Approval and adoption make no claim about behavior verification.
 
 ## Owners: issuing invites
 
