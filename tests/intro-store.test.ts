@@ -1,9 +1,11 @@
 import { createHmac } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import type { FileHandle } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { IntroStore } from "../src/intro/store.js";
+import { prepareStoreProcesses } from "./support/store-process.js";
 
 const NOW = 1793000000000;
 const DAY = 86400000;
@@ -234,18 +236,74 @@ describe("private intro dedupe (disposable synthetic fixtures)", () => {
     }
   });
 
-  it("keeps data on a live lock and safely recovers a dead-process lock", async () => {
+  it("fails closed on live, dead and incomplete lock markers without modifying sent state", async () => {
     const { store } = fixture();
     const receipt = await confirmation(store);
     const lock = path.join(store.dir, ".lock");
     writeFileSync(lock, String(process.pid), { mode: 0o600 });
     await expect(store.confirmSent(PEER, receipt, NOW, DOMAIN)).rejects.toMatchObject({ code: "E_INTRO_BUSY" });
     expect(existsSync(store.sentPath)).toBe(false);
-    rmSync(lock);
+    for (const contents of ["2147483647", "", "not-a-pid"]) {
+      writeFileSync(lock, contents, { mode: 0o600 });
+      await expect(store.confirmSent(PEER, receipt, NOW, DOMAIN)).rejects.toMatchObject({ code: "E_INTRO_BUSY" });
+      expect(readFileSync(lock, "utf8")).toBe(contents);
+      expect(existsSync(store.sentPath)).toBe(false);
+    }
+  });
+
+  it("preserves all confirmed entries when concurrent processes encounter the same dead-owner lock", async () => {
+    const { parent, home, store } = fixture();
+    await store.confirmSent(PEER, await confirmation(store), NOW, DOMAIN);
+    const secondPeer = "synthetic-peer:already-confirmed";
+    await store.confirmSent(secondPeer, await confirmation(store, secondPeer), NOW + 1, DOMAIN);
+    const peers = ["synthetic-peer:new-a", "synthetic-peer:new-b", "synthetic-peer:new-c", "synthetic-peer:new-d"];
+    const confirmations: string[] = [];
+    for (const peer of peers) confirmations.push(await confirmation(store, peer));
+    const lock = path.join(store.dir, ".lock");
     writeFileSync(lock, "2147483647", { mode: 0o600 });
-    await store.confirmSent(PEER, receipt, NOW, DOMAIN);
-    expect(Object.values(sent(store).sent)).toEqual([NOW]);
-    expect(existsSync(lock)).toBe(false);
+    const before = readFileSync(store.sentPath);
+    const secret = readFileSync(store.secretPath);
+    const inode = lstatSync(lock).ino;
+    const run = prepareStoreProcesses(path.join(parent, "workers"), "src/intro/store.ts", "IntroStore", home);
+    const outcomes = await run(peers.map((peer, index) => ({ operation: "confirmSent", args: [peer, confirmations[index]!, NOW + 2, DOMAIN] })));
+    expect(outcomes).toEqual(Array.from({ length: 4 }, () => ({ ok: false, code: "E_INTRO_BUSY" })));
+    expect(readFileSync(store.sentPath)).toEqual(before);
+    expect(readFileSync(store.secretPath)).toEqual(secret);
+    expect(Object.keys(sent(store).sent)).toHaveLength(2);
+    expect(lstatSync(lock).ino).toBe(inode);
+    expect(readFileSync(lock, "utf8")).toBe("2147483647");
+  });
+
+  it("honors a shared recovery marker before lock acquisition without altering it or confirmed entries", async () => {
+    const { store } = fixture();
+    await store.confirmSent(PEER, await confirmation(store), NOW, DOMAIN);
+    const before = readFileSync(store.sentPath);
+    const recovery = path.join(store.dir, ".recovery");
+    writeFileSync(recovery, "synthetic recovery guard", { mode: 0o600 });
+    const inode = lstatSync(recovery).ino;
+    await expect(store.assertAvailable("synthetic-peer:new", NOW + 1)).rejects.toMatchObject({ code: "E_INTRO_BUSY" });
+    expect(readFileSync(store.sentPath)).toEqual(before);
+    expect(readFileSync(recovery, "utf8")).toBe("synthetic recovery guard");
+    expect(lstatSync(recovery).ino).toBe(inode);
+    expect(existsSync(path.join(store.dir, ".lock"))).toBe(false);
+  });
+
+  it("honors a shared recovery marker that appears during lock publication", async () => {
+    const { store } = fixture();
+    await store.confirmSent(PEER, await confirmation(store), NOW, DOMAIN);
+    const before = readFileSync(store.sentPath);
+    const target = store as unknown as { createLock(file: string): Promise<FileHandle> };
+    const original = target.createLock.bind(store);
+    const recovery = path.join(store.dir, ".recovery");
+    vi.spyOn(target, "createLock").mockImplementation(async file => {
+      const handle = await original(file);
+      writeFileSync(recovery, "synthetic concurrent recovery", { mode: 0o600 });
+      return handle;
+    });
+    await expect(store.assertAvailable("synthetic-peer:new", NOW + 1)).rejects.toMatchObject({ code: "E_INTRO_BUSY" });
+    expect(readFileSync(store.sentPath)).toEqual(before);
+    expect(readFileSync(recovery, "utf8")).toBe("synthetic concurrent recovery");
+    expect(existsSync(path.join(store.dir, ".lock"))).toBe(false);
   });
 
   it("serializes concurrent confirmations without losing either peer after the busy caller retries", async () => {

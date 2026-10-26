@@ -15,7 +15,7 @@ const unsafe = () => new CliError("E_INTRO_STORE_UNSAFE", "intro store requires 
 const invalid = () => new CliError("E_INTRO_STORE_INVALID", "intro store metadata is invalid; existing data was retained");
 const confirmationError = () => new CliError("E_INTRO_CONFIRMATION", "intro confirmation is invalid or dated in the future");
 const duplicate = () => new CliError("E_INTRO_DUPLICATE", "an intro was already confirmed for this peer within 30 days");
-const busy = () => new CliError("E_INTRO_BUSY", "another process is updating the intro store; retry");
+const busy = () => new CliError("E_INTRO_BUSY", "intro store is locked or recovery is in progress; existing markers are not removed automatically");
 const object = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 const integer = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 const sameFile = (a: Stats, b: Stats) => a.dev === b.dev && a.ino === b.ino;
@@ -124,28 +124,24 @@ export class IntroStore {
   private async locked<T>(fn: () => Promise<T>): Promise<T> {
     await this.directories();
     const lockPath = path.join(this.dir, ".lock");
+    // Shared-client recovery uses this marker. Ordinary mutations never remove it.
+    const recoveryPath = path.join(this.dir, ".recovery");
+    const recoveryPresent = () => lstat(recoveryPath).then(() => true).catch(error => {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
+      throw error;
+    });
+    if (await recoveryPresent()) throw busy();
     let handle: FileHandle;
     try { handle = await this.createLock(lockPath); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      const previous = await this.privateFile(lockPath);
-      if (!previous) throw busy();
-      let stat: Stats;
-      let pid: number;
-      try {
-        stat = await previous.stat();
-        const text = await previous.readFile("utf8");
-        pid = /^\d{1,10}$/.test(text) ? Number(text) : NaN;
-      } finally { await previous.close(); }
-      if (!Number.isSafeInteger(pid) || pid <= 0) throw unsafe();
-      try { process.kill(pid, 0); throw busy(); }
-      catch (cause) { if ((cause as NodeJS.ErrnoException).code !== "ESRCH") throw cause; }
-      const current = await lstat(lockPath).catch(() => null);
-      if (!current || !sameFile(stat, current)) throw busy();
-      await unlink(lockPath);
-      try { handle = await this.createLock(lockPath); } catch { throw busy(); }
+      // Checking a stale inode/PID does not make pathname reclamation atomic.
+      // Preserve it and all sent history; recovery requires separate exclusion.
+      throw busy();
     }
     try {
+      // A cooperating recovery guard may have appeared during lock publication.
+      if (await recoveryPresent()) throw busy();
       return await fn();
     } finally {
       const stat = await handle.stat();

@@ -169,7 +169,21 @@ export async function joinCommand({ api, parsed }: Context, deps: Deps): Promise
     }
     const fingerprint = keyFingerprint(key.publicKey);
     if (wait) deps.stderr(`approval link ${receipt.approval_url}\ncode ${receipt.user_code}\nkey fingerprint ${fingerprint}\nGive all three to your human. Waiting for their approval.\n`);
-    const state = await poll(client, record.signup_id, wait, clock, wait ? receipt.poll_interval_ms : 0);
+    let state: SignupPoll;
+    try { state = await poll(client, record.signup_id, wait, clock, wait ? receipt.poll_interval_ms : 0); }
+    catch (error) {
+      const failed = error instanceof CliError ? error : new CliError("E_UNEXPECTED_RESPONSE", "could not confirm current signup state");
+      const resumeCommand = `zipviz join start --resume ${record.signup_id}`;
+      const statusCommand = `zipviz join status ${record.signup_id}`;
+      return { ok: false, exitCode: 1, data: { signup_id: record.signup_id, receipt, key_fingerprint: fingerprint,
+        current_state: null, receipt_is_historical: true, resume_command: resumeCommand, status_command: statusCommand,
+        error: { code: failed.code, message: failed.message, ...(failed.httpStatus === undefined ? {} : { http_status: failed.httpStatus }) } },
+      lines: ["Signup creation receipt saved; current state could not be confirmed.",
+        `signup ${record.signup_id}`, `approval link ${receipt.approval_url}`, `code ${receipt.user_code}`,
+        `key fingerprint ${fingerprint}`, "Give the approval link, code and key fingerprint to your human. Only they can approve.",
+        "The saved receipt describes creation only; it does not establish current or live state.",
+        `status: ${statusCommand}`, `resume: ${resumeCommand}`, `poll error: ${failed.code}`] };
+    }
     return { data: { ...state, receipt, key_fingerprint: fingerprint }, lines: [
       `signup ${record.signup_id}: ${state.state}`, `approval link ${receipt.approval_url}`, `code ${receipt.user_code}`,
       `key fingerprint ${fingerprint}`, "Give the approval link, code and key fingerprint to your human. Only they can approve.",

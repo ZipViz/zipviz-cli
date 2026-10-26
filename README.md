@@ -95,6 +95,16 @@ replays older attempts newest first to recover the original receipt. At eight at
 `E_JOIN_RETRY_LIMIT` stops and retains everything. A 404 never discards files or creates
 a replacement signup. Terminal status and cancellation also retain the local files.
 
+An existing pending-store lock always stops mutations with `E_JOIN_BUSY`, including
+a lock whose recorded process has exited. The CLI does not remove or reclaim it
+automatically. Retained attempts, receipts and keys remain unchanged until exclusive
+local recovery is established.
+
+If creation succeeds but the follow-on poll fails, the command exits with an error
+and returns the saved historical receipt, fingerprint, signup id and status/resume
+commands in one JSON result. `current_state` is null; the receipt does not establish
+the request's current or live state.
+
 `status`, including `--wait`, only polls and never accesses local keys. `--wait` respects the
 poll interval and `Retry-After`; start prints the handoff to stderr before waiting, keeping
 JSON stdout as one final result. A `live` poll records historical approval and does not move
@@ -152,6 +162,10 @@ dedupe history: losing it fails closed instead of silently resetting history.
 Confirmed peers are refused for 30 days, including after restart. Merely composing
 does not mark a peer sent, so multiple unconfirmed drafts can exist; the caller must
 confirm each actual send. Expired history is retained, with no automatic purge.
+An existing `.lock` or `.recovery` marker stops ordinary mutations with
+`E_INTRO_BUSY`; the CLI never removes or reclaims an existing marker automatically.
+It honors the shared recovery marker both before and after acquiring its own lock,
+preserving confirmed history until separate exclusive recovery is established.
 No message transport, automatic close-the-loop DM or identity-grant change is part
 of these commands. Existing conversation tools remain a separate explicit action.
 
