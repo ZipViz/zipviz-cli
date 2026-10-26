@@ -17,6 +17,7 @@ import type { NetDeps } from "./net/fetch.js";
 import { INVITE_NAMESPACE } from "./viz.js";
 import { VERSION } from "./version.js";
 import { joinCommand } from "./join/index.js";
+import { introCommand } from "./intro/index.js";
 
 export { VERSION };
 
@@ -33,6 +34,8 @@ export type Deps = {
   /** Injectable scheduler and id source for deterministic synthetic join tests. */
   sleep?: (ms: number) => Promise<void>;
   joinId?: () => string;
+  /** Injectable id source for synthetic compose-only introduction tests. */
+  introId?: () => string;
 };
 
 export const USAGE = `zipviz ${VERSION} — local Ed25519 identity for the ZipViz .viz registry
@@ -47,6 +50,11 @@ usage:
   zipviz join status <signup_id> [--wait]        poll only; never moves or reads keys
   zipviz join cancel <signup_id>                withdraw a pending request with its local key
   zipviz join adopt <signup_id>                 explicitly adopt after checking current registry identity
+  zipviz intro create <domain> --peer <reference> --existing-conversation [--peer-domain <domain>] [--aud <audience>] [--ttl <seconds>]
+                                               compose a token and draft only; never transmits
+                                               existing conversation is your statement, not independent proof
+  zipviz intro confirm-sent <domain> --peer <reference> --confirmation <receipt> --confirmed-sent
+                                               record your confirmed send locally for 30-day dedupe
   zipviz doctor                                read-only health check: key store safety, registry
                                                reachability, invite availability, clock skew
                                                exit 0 nothing failed or unknown, apart from the
@@ -101,6 +109,7 @@ const COMMANDS: Record<string, Command> = {
   invite: { spec: { bool: ["execute"], value: ["ttl", "invite-id", "aud"] }, handler: commands.invite },
   link: { spec: { value: ["nostr-pubkey", "issued-at"] }, handler: linkCommand },
   join: { spec: { bool: ["wait"], value: ["name", "owner-email", "runtime", "introduced-by", "aud", "resume"] }, handler: joinCommand },
+  intro: { spec: { bool: ["existing-conversation", "confirmed-sent"], value: ["peer", "peer-domain", "aud", "ttl", "confirmation"] }, handler: introCommand },
 };
 
 export function defaultDeps(): Deps {
@@ -137,6 +146,7 @@ export async function run(argv: readonly string[], deps: Deps): Promise<number> 
     if (name === "card" && parsed.positional[0]) label = `card ${parsed.positional[0]}`;
     if (name === "link" && parsed.positional[0]) label = `link ${parsed.positional[0]}`;
     if (name === "join") label = `join ${parsed.positional[0] ?? "start"}`;
+    if (name === "intro" && parsed.positional[0]) label = `intro ${parsed.positional[0]}`;
     if (parsed.flags.has("help")) return out.success("help", { data: { usage: USAGE }, lines: [USAGE] });
     if (name === "check") {
       const cardOptions = ["key", "jwks", "allow-jku-host", "require-all"];
@@ -171,7 +181,7 @@ export async function run(argv: readonly string[], deps: Deps): Promise<number> 
     const apiFlag = flagValue(parsed, "api");
     const api = new Api(apiFlag === undefined ? DEFAULT_API : parseApiOrigin(apiFlag), deps.fetch);
     const result = await command.handler({ api, keys: new KeyStore(deps.zipvizHome), parsed }, deps);
-    if (!json && (name === "check" || name === "card" || name === "link" || name === "doctor" || name === "backup" || name === "join")) {
+    if (!json && (name === "check" || name === "card" || name === "link" || name === "doctor" || name === "backup" || name === "join" || name === "intro")) {
       result.lines = result.lines.map(escapeTerminal);
     }
     return out.success(label, result);

@@ -104,6 +104,57 @@ registered status and active identity. It links the key into the main store with
 an existing file, then removes the pending copy and metadata. It adds no grants or bot
 identities. Approval and adoption make no claim about behavior verification.
 
+## Compose an introduction (draft API contract)
+
+This separate ELU-846 d-cli slice depends on join PR #12 at
+`ecd246397d08f98d777ba319b7ae59545a297c0d`. It implements frozen v1.1 H/I/L and
+v1.1.1's exact account-linked copy using the same pinned synthetic API artifact.
+Production signup flags remain off; these fixtures are not live server acceptance.
+
+```sh
+zipviz intro create fixture-1234.z.viz --peer <opaque-reference> --existing-conversation
+# Optional: --peer-domain peer-4321.z.viz --aud api.zipviz.ai --ttl 259200
+zipviz intro confirm-sent fixture-1234.z.viz --peer <same-reference> --confirmation <receipt> --confirmed-sent
+```
+
+`intro create` composes a signed token and the exact introduction draft. It never
+transmits either. It requires the existing local key to match the current active,
+registered identity and public card, plus a fresh signed intro-policy read allowing
+introductions. It rechecks key, incarnation, revision and card after that read.
+Any policy error, timeout, malformed response, opt-out or stale result refuses
+composition. The policy POST is read-only and contains no peer reference, intro
+token or message content. The token lasts up to 72 hours; `--ttl` accepts 1 to
+259200 seconds. `--aud` defaults to the configured production audience string
+`api.zipviz.ai`, independently of `--api`.
+
+`--existing-conversation` is your statement that the conversation already exists;
+ZipViz cannot independently verify it. The output labels this limit. If you supply
+`--peer-domain`, an existing ZipViz identity is refused; an unknown or ambiguous
+lookup error also refuses composition. Without a peer domain, the CLI cannot
+establish whether that peer is already registered.
+
+Only the public card's opted-in `account_linked: true` LinkedIn name or X handle
+appears in the owner form. LinkedIn takes precedence when both are public. Hidden,
+absent, typed or legacy `verified` claims use the domain form. The draft says
+"account linked" without a checkmark and makes no claim that a person is verified.
+Unsafe linked display fields refuse composition.
+
+The output includes a local confirmation receipt. After you send the draft yourself,
+use `confirm-sent` with the same peer reference and receipt. You can record a past
+send after the intro token has expired; the local receipt cannot enroll an agent.
+This records your statement locally and makes no network request. It does not prove
+that a message was sent. Only this explicit confirmation writes
+`~/.zipviz/intros/sent.json` (0600), keyed by HMAC of the opaque peer reference under
+a local random secret (0600). The directory is 0700. Raw references, intro tokens,
+draft text and confirmation receipts are not saved there. Keep the secret with the
+dedupe history: losing it fails closed instead of silently resetting history.
+
+Confirmed peers are refused for 30 days, including after restart. Merely composing
+does not mark a peer sent, so multiple unconfirmed drafts can exist; the caller must
+confirm each actual send. Expired history is retained, with no automatic purge.
+No message transport, automatic close-the-loop DM or identity-grant change is part
+of these commands. Existing conversation tools remain a separate explicit action.
+
 ## Owners: issuing invites
 
 Owners are registered agents listed in the registry's `AGENT_INVITE_ISSUERS`. Your key must be at
