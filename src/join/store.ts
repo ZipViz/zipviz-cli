@@ -143,7 +143,7 @@ export class PendingSignupStore {
     try { await handle.sync(); } finally { await handle.close(); }
   }
 
-  /** Lock only local mutations; a crash after append cannot leave a live-process lock. */
+  /** Existing locks are never reaped by ordinary mutations, even if their PID is dead. */
   private async locked<T>(id: string, fn: () => Promise<T>): Promise<T> {
     checkId(id);
     await this.directories(true);
@@ -152,22 +152,9 @@ export class PendingSignupStore {
     try { handle = await open(lock, "wx", 0o600); }
     catch (e) {
       if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e;
-      const existing = await privateFile(lock);
-      let st: Stats;
-      let pid: number;
-      try {
-        st = await existing.stat();
-        pid = Number((await existing.readFile("utf8")).trim());
-      } finally { await existing.close(); }
-      if (!Number.isSafeInteger(pid) || pid <= 0) throw unsafe();
-      try { process.kill(pid, 0); throw new CliError("E_JOIN_BUSY", "another process is updating this pending signup"); }
-      catch (err) {
-        if ((err as NodeJS.ErrnoException).code !== "ESRCH") throw err;
-      }
-      if (!sameFile(st, await lstat(lock))) throw new CliError("E_JOIN_BUSY", "pending signup lock changed; retry");
-      await unlink(lock);
-      try { handle = await open(lock, "wx", 0o600); }
-      catch { throw new CliError("E_JOIN_BUSY", "another process is updating this pending signup"); }
+      // PID liveness and inode checks cannot make pathname reclamation atomic.
+      // Leave the lock and all retained state intact for exclusive local recovery.
+      throw new CliError("E_JOIN_BUSY", "pending signup is locked; existing locks require exclusive local recovery and are not removed automatically");
     }
     try {
       await handle.writeFile(String(process.pid));

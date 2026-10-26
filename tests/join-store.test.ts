@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { canonicalizeJson } from "../src/a2a/jcs.js";
 import { PendingSignupStore, type PendingAttempt } from "../src/join/store.js";
+import { prepareStoreProcesses } from "./support/store-process.js";
 
 const ID = "00000000-0000-4000-8000-000000000001";
 const ORIGIN = { registry_origin: "https://signup.example", audience: "signup.example" };
@@ -217,7 +218,7 @@ describe("private pending signup store (disposable synthetic fixtures)", () => {
     expect(existsSync(home)).toBe(false);
   });
 
-  it("preserves all data on a live-process lock and recovers a dead-process lock", async () => {
+  it("fails closed on live, dead or incomplete locks without changing retained state", async () => {
     const { store } = fixture();
     await store.create(ID, attempt(), ORIGIN);
     const lock = path.join(store.dir, `.${ID}.lock`);
@@ -225,10 +226,38 @@ describe("private pending signup store (disposable synthetic fixtures)", () => {
     const before = readFileSync(store.metadataPathFor(ID));
     await expect(store.appendAttempt(ID, attempt(1793000301000))).rejects.toMatchObject({ code: "E_JOIN_BUSY" });
     expect(readFileSync(store.metadataPathFor(ID))).toEqual(before);
-    rmSync(lock);
+    for (const contents of ["2147483647", "", "not-a-pid"]) {
+      writeFileSync(lock, contents, { mode: 0o600 });
+      await expect(store.appendAttempt(ID, attempt(1793000301000))).rejects.toMatchObject({ code: "E_JOIN_BUSY" });
+      expect(readFileSync(store.metadataPathFor(ID))).toEqual(before);
+      expect(readFileSync(lock, "utf8")).toBe(contents);
+    }
+  });
+
+  it.each([false, true])("preserves exact attempts and receipt=%s when concurrent processes encounter a dead-owner lock", async savedReceipt => {
+    const { store, parent, home } = fixture();
+    const first = attempt();
+    const second = attempt(first.issued_at_ms + 301000);
+    await store.create(ID, first, ORIGIN);
+    await store.appendAttempt(ID, second);
+    const receipt = { signup_id: ID, user_code: "BCDF-GHJK" };
+    if (savedReceipt) await store.saveReceipt(ID, receipt);
+    const lock = path.join(store.dir, `.${ID}.lock`);
     writeFileSync(lock, "2147483647", { mode: 0o600 });
-    await store.appendAttempt(ID, attempt(1793000301000));
-    expect((await store.read(ID)).attempts).toHaveLength(2);
-    expect(existsSync(lock)).toBe(false);
+    const before = readFileSync(store.metadataPathFor(ID));
+    const inode = lstatSync(lock).ino;
+    const run = prepareStoreProcesses(path.join(parent, "workers"), "src/join/store.ts", "PendingSignupStore", home);
+    const outcomes = await run([
+      { operation: "appendAttempt", args: [ID, attempt(second.issued_at_ms + 301000)] },
+      { operation: "saveReceipt", args: [ID, receipt] },
+      { operation: "appendAttempt", args: [ID, attempt(second.issued_at_ms + 602000)] },
+      { operation: "saveReceipt", args: [ID, receipt] },
+    ]);
+    expect(outcomes).toEqual(Array.from({ length: 4 }, () => ({ ok: false, code: "E_JOIN_BUSY" })));
+    expect(readFileSync(store.metadataPathFor(ID))).toEqual(before);
+    expect((await store.read(ID)).attempts).toEqual([first, second]);
+    expect((await store.read(ID)).receipt).toEqual(savedReceipt ? receipt : undefined);
+    expect(lstatSync(lock).ino).toBe(inode);
+    expect(readFileSync(lock, "utf8")).toBe("2147483647");
   });
 });

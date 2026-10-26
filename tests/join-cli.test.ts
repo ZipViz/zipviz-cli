@@ -92,6 +92,63 @@ afterEach(() => { for (const h of fixtures.splice(0)) h.cleanup(); });
 const starts = (h: ReturnType<typeof fixture>) => h.requests.filter(r => new URL(r.url).pathname === "/v1/signup/start");
 
 describe("join lifecycle against the pinned synthetic draft transport", () => {
+  it.each(["network", "rate", "malformed", "not-found"])("returns one historical handoff result when the post-receipt poll has a %s failure", async failure => {
+    const h = setup();
+    h.setHook(async (request, next) => {
+      if (new URL(request.url).pathname !== `/v1/signup/${ID}`) return next();
+      // The successful receipt must already be durable before the failing poll.
+      expect((await h.store.read(ID)).receipt).toBeDefined();
+      if (failure === "network") throw new Error("synthetic network failure");
+      if (failure === "rate") return response({ code: "E_SLOW_DOWN", error: "rate limited" }, 429);
+      if (failure === "not-found") return response({ code: "E_SIGNUP_NOT_FOUND", error: "missing" }, 404);
+      return response({ state: "live", owner_email: EMAIL });
+    });
+    const result = await h.start();
+    const receipt = await h.receipt();
+    const key = await h.store.loadKey(ID);
+    expect(result.code).toBe(1);
+    expect(result.text.trim().split("\n")).toHaveLength(1);
+    expect(result.body).toMatchObject({ ok: false, signup_id: ID, receipt, current_state: null,
+      receipt_is_historical: true, key_fingerprint: keyFingerprint(key.publicKey),
+      resume_command: `zipviz join start --resume ${ID}`, status_command: `zipviz join status ${ID}`,
+      error: { code: expect.stringMatching(/^E_(?:NETWORK|SLOW_DOWN|SIGNUP_NOT_FOUND|UNEXPECTED_RESPONSE)$/) } });
+    expect(result.body).not.toHaveProperty("state");
+    expect(result.body).not.toHaveProperty("domain");
+    expect(result.body).not.toHaveProperty("adopt_command");
+    expect(JSON.stringify(result.body)).toContain(receipt.approval_url);
+    expect(JSON.stringify(result.body)).toContain(receipt.user_code);
+    expect(result.text).not.toContain(EMAIL);
+    const saved = await h.store.read(ID);
+    expect(saved.receipt).toEqual(receipt);
+    expect(saved.attempts).toHaveLength(1);
+    expect(existsSync(h.store.keyPathFor(ID))).toBe(true);
+    h.setHook(undefined);
+    expect((await h.resume()).body).toMatchObject({ state: "pending" });
+    expect((await h.store.read(ID)).attempts).toEqual(saved.attempts);
+  });
+
+  it("preserves the historical handoff for --wait and human output when polling fails", async () => {
+    const h = setup();
+    h.setHook(async (request, next) => {
+      if (new URL(request.url).pathname === `/v1/signup/${ID}`) throw new Error("synthetic poll timeout");
+      return next();
+    });
+    const result = await h.cli("join", "--name", "fixture", "--owner-email", EMAIL, "--runtime", "other", "--wait");
+    expect(result.body).toMatchObject({ ok: false, current_state: null, receipt_is_historical: true });
+    expect(result.text.trim().split("\n")).toHaveLength(1);
+    const mark = h.stdout.length;
+    expect(await run(["join", "start", "--resume", ID], h.deps)).toBe(1);
+    const human = h.stdout.slice(mark).join("");
+    const receipt = await h.receipt();
+    expect(human).toContain(receipt.approval_url);
+    expect(human).toContain(receipt.user_code);
+    expect(human).toContain(ID);
+    expect(human).toContain(keyFingerprint((await h.store.loadKey(ID)).publicKey));
+    expect(human).toContain("does not establish current or live state");
+    expect(human).toContain(`zipviz join start --resume ${ID}`);
+    expect(human).not.toContain(EMAIL);
+  });
+
   it("persists a private attempt before send, prints a fingerprint and keeps private material out of every request/log", async () => {
     const h = setup();
     h.setHook(async (r, next) => {

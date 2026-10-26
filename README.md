@@ -95,6 +95,16 @@ replays older attempts newest first to recover the original receipt. At eight at
 `E_JOIN_RETRY_LIMIT` stops and retains everything. A 404 never discards files or creates
 a replacement signup. Terminal status and cancellation also retain the local files.
 
+An existing pending-store lock always stops mutations with `E_JOIN_BUSY`, including
+a lock whose recorded process has exited. The CLI does not remove or reclaim it
+automatically. Retained attempts, receipts and keys remain unchanged until exclusive
+local recovery is established.
+
+If creation succeeds but the follow-on poll fails, the command exits with an error
+and returns the saved historical receipt, fingerprint, signup id and status/resume
+commands in one JSON result. `current_state` is null; the receipt does not establish
+the request's current or live state.
+
 `status`, including `--wait`, only polls and never accesses local keys. `--wait` respects the
 poll interval and `Retry-After`; start prints the handoff to stderr before waiting, keeping
 JSON stdout as one final result. A `live` poll records historical approval and does not move
