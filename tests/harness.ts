@@ -38,7 +38,7 @@ function rawKeyObject(hex: string) {
   return createPublicKey({ key: Buffer.concat([prefix, Buffer.from(hex, "hex")]), format: "der", type: "spki" });
 }
 
-/** In-memory stand-in for the prod-d1-baseline worker's public + invite routes. */
+/** In-memory stand-in for the registry worker's public + invite routes. */
 export class FakeRegistry {
   agents = new Map<string, RegistryAgent>();
   invitesEnabled = true;
